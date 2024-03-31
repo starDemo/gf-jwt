@@ -3,16 +3,15 @@ package jwt
 import (
 	"context"
 	"crypto/rsa"
+	"github.com/golang-jwt/jwt/v4"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gogf/gf/v2/crypto/gmd5"
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/gcache"
-	"github.com/golang-jwt/jwt/v4"
 )
 
 // MapClaims type that uses the map[string]interface{} for JSON decoding
@@ -192,8 +191,8 @@ func New(mw *GfJWTMiddleware) *GfJWTMiddleware {
 
 	if mw.Unauthorized == nil {
 		mw.Unauthorized = func(ctx context.Context, code int, message string) {
-			r := g.RequestFromCtx(ctx)
-			r.Response.WriteJson(g.Map{
+			r := ghttp.RequestFromCtx(ctx)
+			r.Response.WriteJson(MapClaims{
 				"code":    code,
 				"message": message,
 			})
@@ -264,7 +263,7 @@ func (mw *GfJWTMiddleware) MiddlewareFunc() ghttp.HandlerFunc {
 
 // GetClaimsFromJWT get claims from JWT token
 func (mw *GfJWTMiddleware) GetClaimsFromJWT(ctx context.Context) (MapClaims, string, error) {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 
 	token, err := mw.parseToken(r)
 	if err != nil {
@@ -301,7 +300,7 @@ func (mw *GfJWTMiddleware) LoginHandler(ctx context.Context) (tokenString string
 		return
 	}
 
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 	// Create the token
 	token := jwt.New(jwt.GetSigningMethod(mw.SigningAlgorithm))
 	claims := token.Claims.(jwt.MapClaims)
@@ -339,7 +338,7 @@ func (mw *GfJWTMiddleware) LoginHandler(ctx context.Context) (tokenString string
 
 // LogoutHandler can be used by clients to remove the jwt cookie (if set)
 func (mw *GfJWTMiddleware) LogoutHandler(ctx context.Context) {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 
 	// delete auth cookie
 	if mw.SendCookie {
@@ -382,7 +381,7 @@ func (mw *GfJWTMiddleware) RefreshToken(ctx context.Context) (string, time.Time,
 		return "", time.Now(), err
 	}
 
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 	// Create the token
 	newToken := jwt.New(jwt.GetSigningMethod(mw.SigningAlgorithm))
 	newClaims := newToken.Claims.(jwt.MapClaims)
@@ -417,7 +416,7 @@ func (mw *GfJWTMiddleware) RefreshToken(ctx context.Context) (string, time.Time,
 
 // CheckIfTokenExpire check if token expire
 func (mw *GfJWTMiddleware) CheckIfTokenExpire(ctx context.Context) (jwt.MapClaims, string, error) {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 
 	token, err := mw.parseToken(r)
 	if err != nil {
@@ -475,7 +474,7 @@ func (mw *GfJWTMiddleware) TokenGenerator(data interface{}) (string, time.Time, 
 
 // GetToken help to get the JWT token string
 func (mw *GfJWTMiddleware) GetToken(ctx context.Context) string {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 	token := r.Get(TokenKey).String()
 	if len(token) == 0 {
 		return ""
@@ -485,7 +484,7 @@ func (mw *GfJWTMiddleware) GetToken(ctx context.Context) string {
 
 // GetPayload help to get the payload map
 func (mw *GfJWTMiddleware) GetPayload(ctx context.Context) string {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 	token := r.Get(PayloadKey).String()
 	if len(token) == 0 {
 		return ""
@@ -495,13 +494,13 @@ func (mw *GfJWTMiddleware) GetPayload(ctx context.Context) string {
 
 // GetIdentity help to get the identity
 func (mw *GfJWTMiddleware) GetIdentity(ctx context.Context) interface{} {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 	return r.Get(mw.IdentityKey)
 }
 
 // ExtractClaims help to extract the JWT claims
 func ExtractClaims(ctx context.Context) MapClaims {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 	claims := r.GetParam(PayloadKey).Interface()
 	return claims.(MapClaims)
 }
@@ -712,7 +711,7 @@ func (mw *GfJWTMiddleware) parseTokenString(token string) (*jwt.Token, error) {
 }
 
 func (mw *GfJWTMiddleware) unauthorized(ctx context.Context, code int, message string) {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 	r.Header.Set("WWW-Authenticate", "JWT realm="+mw.Realm)
 	mw.Unauthorized(ctx, code, message)
 	if !mw.DisabledAbort {
@@ -721,7 +720,7 @@ func (mw *GfJWTMiddleware) unauthorized(ctx context.Context, code int, message s
 }
 
 func (mw *GfJWTMiddleware) middlewareImpl(ctx context.Context) {
-	r := g.RequestFromCtx(ctx)
+	r := ghttp.RequestFromCtx(ctx)
 
 	claims, token, err := mw.GetClaimsFromJWT(ctx)
 	if err != nil {
