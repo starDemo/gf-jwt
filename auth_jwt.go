@@ -318,8 +318,8 @@ func (mw *GfJWTMiddleware) LoginHandler(ctx context.Context) (tokenString string
 	}
 
 	expire = mw.TimeFunc().Add(mw.Timeout)
-	claims["exp"] = expire.UnixNano() / 1e6
-	claims["orig_iat"] = mw.TimeFunc().UnixNano() / 1e6
+	claims["exp"] = expire.Unix()
+	claims["orig_iat"] = mw.TimeFunc().Unix()
 
 	tokenString, err = mw.signedString(token)
 	if err != nil {
@@ -330,7 +330,7 @@ func (mw *GfJWTMiddleware) LoginHandler(ctx context.Context) (tokenString string
 	// set cookie
 	if mw.SendCookie {
 		expireCookie := mw.TimeFunc().Add(mw.CookieMaxAge)
-		maxAge := (expireCookie.UnixNano() - mw.TimeFunc().UnixNano()) / 1e6
+		maxAge := expireCookie.Unix() - mw.TimeFunc().Unix()
 		r.Cookie.SetCookie(mw.CookieName, tokenString, mw.CookieDomain, "/", time.Duration(maxAge)*time.Second)
 	}
 
@@ -392,8 +392,8 @@ func (mw *GfJWTMiddleware) RefreshToken(ctx context.Context) (string, time.Time,
 	}
 
 	expire := mw.TimeFunc().Add(mw.Timeout)
-	newClaims["exp"] = expire.UnixNano() / 1e6
-	newClaims["orig_iat"] = mw.TimeFunc().UnixNano() / 1e6
+	newClaims["exp"] = expire.Unix()
+	newClaims["orig_iat"] = mw.TimeFunc().Unix()
 	tokenString, err := mw.signedString(newToken)
 	if err != nil {
 		return "", time.Now(), err
@@ -444,7 +444,7 @@ func (mw *GfJWTMiddleware) CheckIfTokenExpire(ctx context.Context) (jwt.MapClaim
 
 	exp := int64(claims["exp"].(float64))
 
-	if exp < (mw.TimeFunc().Add(-mw.MaxRefresh).UnixNano() / 1e6) {
+	if exp < (mw.TimeFunc().Add(-mw.MaxRefresh).Unix()) {
 		return nil, "", ErrExpiredToken
 	}
 
@@ -463,8 +463,8 @@ func (mw *GfJWTMiddleware) TokenGenerator(data interface{}) (string, time.Time, 
 	}
 
 	expire := mw.TimeFunc().UTC().Add(mw.Timeout)
-	claims["exp"] = expire.UnixNano() / 1e6
-	claims["orig_iat"] = mw.TimeFunc().UnixNano() / 1e6
+	claims["exp"] = expire.Unix()
+	claims["orig_iat"] = mw.TimeFunc().Unix()
 	tokenString, err := mw.signedString(token)
 	if err != nil {
 		return "", time.Time{}, err
@@ -739,7 +739,7 @@ func (mw *GfJWTMiddleware) middlewareImpl(ctx context.Context) {
 		return
 	}
 
-	if int64(claims["exp"].(float64)) < (mw.TimeFunc().UnixNano() / 1e6) {
+	if int64(claims["exp"].(float64)) < (mw.TimeFunc().Unix()) {
 		mw.unauthorized(ctx, http.StatusUnauthorized, mw.HTTPStatusMessageFunc(ErrExpiredToken, ctx))
 		return
 	}
